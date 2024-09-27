@@ -1,5 +1,5 @@
 import Pool from "pg-pool";
-import {PrismaPg} from "@primsa/adapter-pg"
+import {PrismaPg} from "@prisma/adapter-pg"
 import {PrismaClient} from "@prisma/client"
 
 const connectionString = process.env.PG_URI;
@@ -10,4 +10,4 @@ const pool = new Pool({
 
 const adapter = new PrismaPg(pool)
 const prisma = new PrismaClient({adapter})
-export default pool;
+export default prisma;
