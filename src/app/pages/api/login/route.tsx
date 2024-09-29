@@ -1,20 +1,21 @@
-import {SHA256 as sha256} from "crypto-js";
 import pool from "../connect";
 import { PrismaClient } from "@prisma/client";
 import prisma from "../connect";
+import bcrypt from "bcryptjs";
+import { NextRequest, NextResponse } from "next/server";
+import jwt from "jsonwebtoken";
 
-export default async function POST(req: any, res: any) {
+export default async function POST(req: NextRequest, res: NextResponse) {
 
     const reqBody = await req.json();
     const { email, password } = reqBody;
 
     if (!email || !password) {
-        return res.status(400).json({ error: "Missing email or password" });
+        return NextResponse.json({ error: "Missing email or password" }, { status: 400 });
     }
-
     try{
         
-        const user = await prisma.User.findUnique({
+        const user = await prisma.user.findUnique({
             where: {
                 email: email
             },
@@ -25,12 +26,26 @@ export default async function POST(req: any, res: any) {
                 password: true
             }
         })
-        if (user && user.password == sha256(password).toString()) { 
+        const validPassword = await bcrypt.compare(password, user.password);
 
-            return res.status(200).json({ user: user });
+        if (user && validPassword) { 
+            
+            const tokenData = {
+                id: user.id,
+                username: user.name,
+                email: user.email,
+            };
+
+            const token = await jwt.sign(tokenData, process.env.TOKEN_SECRET!, {
+                expiresIn: "1d",    
+            })
+
+            const response = NextResponse.json({ user: user, token: token }, { status: 200 });
+
+            return response;
 
         }else {
-            return res.status(400).json({ error: "Invalid email or password" });
+            return NextResponse.json({ error: "Invalid email or password" }, { status: 400 });  
         }
 
     }catch(err:any){
